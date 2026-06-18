@@ -1,0 +1,51 @@
+{
+  "name": "@coodde/bai",
+  "version": "0.1.0",
+  "description": "Browser AI SDK — a unified, capability-driven AI runtime for the frontend that behaves like a DOM API for intelligence tasks.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "ai",
+    "browser",
+    "llm",
+    "chrome-ai",
+    "webllm",
+    "ollama",
+    "frontend",
+    "ui",
+    "serialize",
+    "classify"
+  ],
+  "author": "Svyatoslav Ryzhok",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
+    "jsdom": "^25.0.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

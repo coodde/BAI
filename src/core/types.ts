@@ -114,6 +114,12 @@ export interface AIProvider {
   readonly performance?: number;
   /** Whether the provider runs fully on-device (no network). */
   readonly local?: boolean;
+  /**
+   * Marks a last-resort provider. Fallback providers are always tried AFTER
+   * every non-fallback provider (overriding priority and policy) and are never
+   * removed by the `local-only` policy. Use one to handle "no AI available".
+   */
+  readonly fallback?: boolean;
 
   /** Returns true if the provider is usable in the current environment. */
   isAvailable?(): Promise<boolean> | boolean;
@@ -155,7 +161,12 @@ export interface Policy {
 export type PriorityConfig = Partial<Record<Capability, string[]>>;
 
 export interface AIConfig {
-  providers: AIProvider[];
+  /**
+   * The engines to route across. Omit it to use the browser-native default
+   * (`[chromeAI()]`) — zero-download and cross-browser-safe (it degrades to a
+   * clean error where unavailable rather than fetching a heavy model).
+   */
+  providers?: AIProvider[];
   priority?: PriorityConfig;
   policy?: Policy;
   /**

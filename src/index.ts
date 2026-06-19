@@ -8,7 +8,7 @@
  */
 
 // Core
-export { AI } from "./core/AI.js";
+export { AI, defaultProviders } from "./core/AI.js";
 export { Router, DEFAULT_CHAIN } from "./core/router.js";
 export {
   providerSupports,
@@ -26,7 +26,7 @@ export { chromeAI } from "./providers/chrome.provider.js";
 export { browserAI } from "./providers/browserai.provider.js";
 export { ollama } from "./providers/ollama.provider.js";
 export { webllm } from "./providers/webllm.provider.js";
-export { customProvider } from "./providers/custom.provider.js";
+export { customProvider, fallbackProvider } from "./providers/custom.provider.js";
 export { mockProvider } from "./providers/mock.provider.js";
 
 // Types

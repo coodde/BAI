@@ -55,7 +55,9 @@ export class Router {
         ? providerSupportsNatively(p, capability)
         : providerSupports(p, capability);
       if (!supported) return false;
-      if (this.mode === "local-only" && !p.local) return false;
+      // Fallback providers survive local-only filtering — they are the safety
+      // net when nothing on-device can serve the request.
+      if (this.mode === "local-only" && !p.local && !p.fallback) return false;
       if (opts.failureCache?.isFailed(p.id, capability)) return false;
       return true;
     });
@@ -66,6 +68,11 @@ export class Router {
   }
 
   private compare(a: AIProvider, b: AIProvider, capability: Capability): number {
+    // 0. Fallback providers always sort last, overriding everything below.
+    const af = a.fallback ? 1 : 0;
+    const bf = b.fallback ? 1 : 0;
+    if (af !== bf) return af - bf;
+
     // 1. Explicit per-capability priority list wins outright.
     const order = this.priority?.[capability];
     if (order && order.length) {

@@ -18,6 +18,8 @@ export interface CustomProviderOptions {
   priority?: number;
   performance?: number;
   local?: boolean;
+  /** Marks this as a last-resort provider (always tried last, never filtered). */
+  fallback?: boolean;
   isAvailable?: () => boolean | Promise<boolean>;
 }
 
@@ -44,10 +46,46 @@ export function customProvider(options: CustomProviderOptions): AIProvider {
     priority: options.priority,
     performance: options.performance,
     local: options.local,
+    fallback: options.fallback,
     isAvailable: options.isAvailable,
     generate: options.generate,
     chat:
       options.chat ??
       ((input) => chatViaGenerate(id, options.generate, input)),
   };
+}
+
+/**
+ * A last-resort provider. BAI tries it only AFTER every other provider, no
+ * matter the `priority` list or `policy` (it even survives `local-only`). Use
+ * it to handle the "no on-device AI available" case — call your backend or a
+ * hosted LLM, return a hardcoded result, or surface a friendly error.
+ *
+ * @example
+ * ```ts
+ * const ai = new AI({
+ *   providers: [
+ *     chromeAI(),
+ *     fallbackProvider({
+ *       generate: async ({ prompt }) => {
+ *         const res = await fetch("/api/ai", {
+ *           method: "POST",
+ *           body: JSON.stringify({ prompt }),
+ *         });
+ *         return (await res.json()).text;
+ *       },
+ *     }),
+ *   ],
+ * });
+ * ```
+ */
+export function fallbackProvider(
+  options: Omit<CustomProviderOptions, "fallback">,
+): AIProvider {
+  return customProvider({
+    ...options,
+    id: options.id ?? "fallback",
+    local: options.local ?? false,
+    fallback: true,
+  });
 }

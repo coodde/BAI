@@ -150,4 +150,33 @@ describe("routing", () => {
   it("requires at least one provider", () => {
     expect(() => new AI({ providers: [] })).toThrow(/at least one provider/);
   });
+
+  it("defaults to a browser-native provider (chrome) when none are given", () => {
+    const ai = new AI();
+    expect(ai.route("chat")).toEqual(["chrome"]);
+    expect(Object.keys(ai.capabilities())).toEqual(["chrome"]);
+  });
+
+  it("defaults providers when given an empty config object", () => {
+    const ai = new AI({});
+    expect(ai.route("chat")).toEqual(["chrome"]);
+  });
+
+  it("throws when config is a non-object", () => {
+    expect(() => new AI(42 as never)).toThrow(/must be an object/);
+  });
+
+  it("throws a clear error when a factory is passed uncalled", () => {
+    // Simulates `providers: [chromeAI]` instead of `[chromeAI()]`.
+    const fn = () => ({}) as never;
+    expect(
+      () => new AI({ providers: [fn as never] }),
+    ).toThrow(/forget to call the factory/);
+  });
+
+  it("throws a clear error for a non-provider object", () => {
+    expect(
+      () => new AI({ providers: [{ engine: "gemini" } as never] }),
+    ).toThrow(/not a valid provider/);
+  });
 });

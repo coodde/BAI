@@ -1,6 +1,6 @@
 {
   "name": "@coodde/bai",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Browser AI SDK — a unified, capability-driven AI runtime for the frontend that behaves like a DOM API for intelligence tasks.",
   "type": "module",
   "main": "./dist/index.cjs",

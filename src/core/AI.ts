@@ -17,8 +17,19 @@ import { runSerialize } from "../methods/serialize.js";
 import { runClassify } from "../methods/classify.js";
 import { runExtract } from "../methods/extract.js";
 import { runReplace } from "../methods/replace.js";
+import { chromeAI } from "../providers/chrome.provider.js";
 
 const DEFAULT_FAILURE_TTL = 30_000;
+
+/**
+ * The default provider set when none are supplied: browser-native engines only.
+ * Currently Chrome built-in AI — zero page-side download and gated by
+ * `isAvailable`, so it works where present and fails cleanly elsewhere without
+ * fetching any heavy model.
+ */
+export function defaultProviders(): AIProvider[] {
+  return [chromeAI()];
+}
 
 /**
  * The BAI runtime. Construct it with a list of providers and optional routing
@@ -30,12 +41,24 @@ export class AI {
   private readonly router: Router;
   private readonly failureCache: FailureCache;
 
-  constructor(config: AIConfig) {
-    if (!config.providers || config.providers.length === 0) {
-      throw new Error("AI requires at least one provider");
+  constructor(config: AIConfig = {}) {
+    if (config === null || typeof config !== "object") {
+      throw new Error(
+        "AI config must be an object, e.g. new AI({ providers: [chromeAI()] }).",
+      );
     }
-    this.assertUniqueIds(config.providers);
-    this.providers = config.providers;
+    // Omitting `providers` opts into the browser-native default; an explicit
+    // empty array is treated as a mistake.
+    const providers =
+      config.providers === undefined ? defaultProviders() : config.providers;
+    if (providers.length === 0) {
+      throw new Error(
+        "AI requires at least one provider. Pass providers: [...] or omit it to use the browser-native default.",
+      );
+    }
+    this.assertValidProviders(providers);
+    this.assertUniqueIds(providers);
+    this.providers = providers;
     this.router = new Router(this.providers, {
       priority: config.priority,
       policy: config.policy,
@@ -162,6 +185,39 @@ export class AI {
     }
 
     throw new NoProviderError(capability, attempts);
+  }
+
+  private assertValidProviders(providers: unknown[]): void {
+    providers.forEach((provider, index) => {
+      // Most common mistake: passing the factory itself (`chromeAI`) instead of
+      // calling it (`chromeAI()`).
+      if (typeof provider === "function") {
+        throw new Error(
+          `providers[${index}] is a function, not a provider. ` +
+            `Did you forget to call the factory? Use e.g. chromeAI() instead of chromeAI.`,
+        );
+      }
+      if (
+        provider === null ||
+        typeof provider !== "object" ||
+        typeof (provider as AIProvider).capabilities !== "object" ||
+        (provider as AIProvider).capabilities === null
+      ) {
+        throw new Error(
+          `providers[${index}] is not a valid provider (missing a "capabilities" map). ` +
+            `Pass the result of a provider factory such as chromeAI(), ollama(), or customProvider({...}).`,
+        );
+      }
+      const p = provider as AIProvider;
+      if (typeof p.id !== "string" || p.id.length === 0) {
+        throw new Error(`providers[${index}] is missing a string "id".`);
+      }
+      if (typeof p.generate !== "function" && typeof p.chat !== "function") {
+        throw new Error(
+          `Provider "${p.id}" must implement at least one of generate() or chat().`,
+        );
+      }
+    });
   }
 
   private assertUniqueIds(providers: AIProvider[]): void {

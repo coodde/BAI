@@ -59,7 +59,12 @@ The schema drives both the prompt and the **return type**: enums narrow to a uni
 
 ### `new AI(config)`
 
+`providers` is **optional**. Omit it and BAI uses the browser-native default — `[chromeAI()]` — which downloads nothing page-side and degrades to a clean `NoProviderError` on browsers without built-in AI (rather than fetching a heavy model). Add heavier engines explicitly when you want fallback.
+
 ```ts
+const ai = new AI();                  // browser-native default ([chromeAI()])
+const ai = new AI({ providers: [...] }); // explicit engines
+
 const ai = new AI({
   providers: [chromeAI(), browserAI({ engine }), ollama()],
 
@@ -175,6 +180,35 @@ const ai = new AI({
 
 Implement only `generate` and BAI synthesizes `serialize`/`classify`/`extract`/`replace` on top. Provide native `serialize`/`classify`/etc. and BAI will prefer them.
 
+### Fallback provider (last resort)
+
+`fallbackProvider(...)` is a custom provider that BAI always tries **after every other provider** — overriding `priority` and `policy`, and surviving the `local-only` filter. It's the place to handle "no on-device AI available": call your backend, a hosted LLM, or return a hardcoded result / friendly error.
+
+```ts
+import { AI, chromeAI, fallbackProvider } from "@coodde/bai";
+
+const ai = new AI({
+  providers: [
+    chromeAI(), // tried first when present
+    fallbackProvider({
+      // only reached if chromeAI is unavailable or fails
+      generate: async ({ prompt, system }) => {
+        const res = await fetch("/api/ai", {
+          method: "POST",
+          body: JSON.stringify({ prompt, system }),
+        });
+        if (!res.ok) throw new Error("backend unavailable");
+        return (await res.json()).text;
+      },
+    }),
+  ],
+});
+
+ai.route("serialize"); // ["chrome", "fallback"] — fallback is always last
+```
+
+Because the fallback only needs `generate`, the structured methods (`serialize`, `classify`, etc.) work through it automatically. If even the fallback throws, the call rejects with `NoProviderError`.
+
 ## Examples
 
 See [`example/`](./example):
@@ -183,6 +217,7 @@ See [`example/`](./example):
 - [`forms.ts`](./example/forms.ts) — classify + extract for form routing
 - [`replace.ts`](./example/replace.ts) — inline text rewriting
 - [`chat.ts`](./example/chat.ts) — streaming chat with fallback
+- [`fallback.ts`](./example/fallback.ts) — last-resort backend / graceful degradation
 
 ## Development
 
